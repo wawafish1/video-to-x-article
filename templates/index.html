@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <title>视频转 X 文章工作台</title>
+    <link rel="stylesheet" href="/static/styles.css?v=3" />
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="header-inner">
+        <div class="brand" aria-label="视频转 X 文章工作台">
+          <span class="brand-mark" aria-hidden="true">VX</span>
+          <span class="brand-copy"><strong>视频转文章</strong><span>Content Studio</span></span>
+        </div>
+        <div class="header-status"><span class="status-dot" aria-hidden="true"></span>本地工作台</div>
+      </div>
+    </header>
+
+    <main class="shell">
+      <section class="page-intro" aria-labelledby="pageTitle">
+        <div>
+          <p class="eyebrow">VIDEO TO X</p>
+          <h1 id="pageTitle">把好内容，变成可发布的文章</h1>
+          <p class="intro-copy">上传视频，自动完成音频提取、转写、内容清洗和 X 文案整理。</p>
+        </div>
+        <ol class="pipeline" aria-label="处理流程">
+          <li><span>01</span>转写</li><li><span>02</span>清洗</li><li><span>03</span>成稿</li>
+        </ol>
+      </section>
+
+      <section class="ingest-panel" aria-labelledby="uploadTitle">
+        <div class="section-heading"><div><h2 id="uploadTitle">创建新任务</h2><p>支持 MP4、MOV、M4V、WEBM 和 MKV</p></div></div>
+        <form id="uploadForm" class="upload-form">
+          <div id="dropZone" class="file-drop">
+            <input id="fileInput" name="file" type="file" accept="video/*,.mkv" />
+            <label for="fileInput" class="file-drop-label">
+              <span class="file-symbol" aria-hidden="true">+</span>
+              <span class="file-copy"><strong id="fileName">选择视频文件</strong><span id="fileHint">也可以将文件拖到这里</span></span>
+              <span class="choose-file">浏览文件</span>
+            </label>
+          </div>
+          <label class="field" for="templateSelect">
+            <span class="field-label">内容类型</span>
+            <select id="templateSelect" name="template_key"></select>
+            <span id="templateDescription" class="field-help">选择后会调整文章结构和写作重点。</span>
+          </label>
+          <button id="submitBtn" class="primary-action" type="submit"><span>开始生成</span><span aria-hidden="true">→</span></button>
+        </form>
+        <div id="uploadStatus" class="inline-status" role="status" aria-live="polite"></div>
+      </section>
+
+      <section class="workspace" aria-label="内容工作区">
+        <aside class="sidebar">
+          <div class="sidebar-head">
+            <div><h2>处理记录</h2><span id="jobCount" class="record-count">0 个任务</span></div>
+            <button id="refreshBtn" class="icon-action" type="button" title="刷新任务列表" aria-label="刷新任务列表">刷新</button>
+          </div>
+          <label class="search-field" for="jobSearch"><span class="visually-hidden">搜索任务</span><input id="jobSearch" type="search" placeholder="搜索文件名" autocomplete="off" /></label>
+          <div id="jobList" class="job-list" aria-live="polite"></div>
+        </aside>
+
+        <section class="detail" aria-label="任务详情">
+          <div id="detailEmpty" class="empty-state">
+            <div class="empty-number" aria-hidden="true">01</div>
+            <h2>选择左侧任务查看内容</h2>
+            <p>文章包、清洗稿、原始转写和最终编辑稿会集中显示在这里。</p>
+          </div>
+
+          <div id="detailPanel" class="detail-panel hidden">
+            <div class="detail-head">
+              <div class="detail-identity"><div class="detail-kicker">当前任务</div><h2 id="detailFilename" class="detail-title"></h2><div id="detailMeta" class="detail-meta"></div></div>
+              <div class="download-group"><span>导出</span><div class="download-links" id="downloadLinks"></div></div>
+            </div>
+            <div class="tabs" role="tablist" aria-label="内容版本">
+              <button id="tabButtonArticle" class="tab active" type="button" role="tab" aria-selected="true" aria-controls="tab-article" data-tab="article">文章包</button>
+              <button id="tabButtonCleaned" class="tab" type="button" role="tab" aria-selected="false" aria-controls="tab-cleaned" data-tab="cleaned">清洗稿</button>
+              <button id="tabButtonRaw" class="tab" type="button" role="tab" aria-selected="false" aria-controls="tab-raw" data-tab="raw">转写稿</button>
+              <button id="tabButtonFinal" class="tab" type="button" role="tab" aria-selected="false" aria-controls="tab-final" data-tab="final">最终稿</button>
+            </div>
+            <section id="tab-article" class="tab-panel" role="tabpanel" aria-labelledby="tabButtonArticle"></section>
+            <section id="tab-cleaned" class="tab-panel hidden" role="tabpanel" aria-labelledby="tabButtonCleaned"></section>
+            <section id="tab-raw" class="tab-panel hidden" role="tabpanel" aria-labelledby="tabButtonRaw"></section>
+            <section id="tab-final" class="tab-panel hidden" role="tabpanel" aria-labelledby="tabButtonFinal">
+              <div class="editor-toolbar">
+                <div><strong>最终编辑</strong><span>在发布前完成最后校对</span></div>
+                <div class="editor-actions"><button id="copyFinalBtn" class="secondary-action" type="button">复制</button><button id="saveFinalBtn" class="primary-small" type="button">保存最终稿</button></div>
+              </div>
+              <textarea id="finalEditor" class="final-editor" spellcheck="false" aria-label="最终稿编辑器"></textarea>
+              <div id="saveStatus" class="save-status" role="status" aria-live="polite"></div>
+            </section>
+          </div>
+        </section>
+      </section>
+    </main>
+    <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+
+    <script>
+      const form = document.querySelector("#uploadForm");
+      const fileInput = document.querySelector("#fileInput");
+      const fileName = document.querySelector("#fileName");
+      const fileHint = document.querySelector("#fileHint");
+      const dropZone = document.querySelector("#dropZone");
+      const templateSelect = document.querySelector("#templateSelect");
+      const templateDescription = document.querySelector("#templateDescription");
+      const submitBtn = document.querySelector("#submitBtn");
+      const uploadStatus = document.querySelector("#uploadStatus");
+      const jobList = document.querySelector("#jobList");
+      const jobCount = document.querySelector("#jobCount");
+      const jobSearch = document.querySelector("#jobSearch");
+      const refreshBtn = document.querySelector("#refreshBtn");
+      const detailEmpty = document.querySelector("#detailEmpty");
+      const detailPanel = document.querySelector("#detailPanel");
+      const detailFilename = document.querySelector("#detailFilename");
+      const detailMeta = document.querySelector("#detailMeta");
+      const downloadLinks = document.querySelector("#downloadLinks");
+      const finalEditor = document.querySelector("#finalEditor");
+      const saveFinalBtn = document.querySelector("#saveFinalBtn");
+      const copyFinalBtn = document.querySelector("#copyFinalBtn");
+      const saveStatus = document.querySelector("#saveStatus");
+      const toast = document.querySelector("#toast");
+
+      let templates = [];
+      let jobs = [];
+      let selectedJobId = null;
+      let jobsLoading = false;
+      let toastTimer = null;
+
+      const labels = { queued: "排队中", extracting: "提取音频", transcribing: "语音转文字", cleaning: "整理清洗稿", rewriting: "生成文章", completed: "已完成", failed: "失败" };
+
+      async function init() {
+        try {
+          await loadTemplates();
+          await loadJobs();
+          if (jobs.length > 0 && !selectedJobId) await openJob(jobs[0].id, true);
+        } catch (error) { showToast(error.message || "页面数据加载失败", "error"); }
+        window.setInterval(() => { if (!document.hidden) loadJobs({ quiet: true }); }, 5000);
+      }
+
+      async function fetchJson(url, options) {
+        const response = await fetch(url, options);
+        let data = {};
+        try { data = await response.json(); } catch (_) { data = {}; }
+        if (!response.ok) throw new Error(data.detail || `请求失败 (${response.status})`);
+        return data;
+      }
+
+      async function loadTemplates() {
+        const data = await fetchJson("/api/templates");
+        templates = data.templates || [];
+        templateSelect.innerHTML = templates.map((item) => `<option value="${escapeHtml(item.key)}">${escapeHtml(item.label)}</option>`).join("");
+        templateSelect.value = data.default || "market";
+        updateTemplateDescription();
+      }
+
+      async function loadJobs({ quiet = false } = {}) {
+        if (jobsLoading) return;
+        jobsLoading = true;
+        refreshBtn.disabled = true;
+        try {
+          const data = await fetchJson("/api/jobs");
+          jobs = data.jobs || [];
+          renderJobs();
+          if (selectedJobId) {
+            const selected = jobs.find((job) => job.id === selectedJobId);
+            if (selected && !["completed", "failed"].includes(selected.status)) await openJob(selectedJobId, false);
+          }
+        } catch (error) { if (!quiet) showToast(error.message || "任务列表加载失败", "error"); }
+        finally { jobsLoading = false; refreshBtn.disabled = false; }
+      }
+
+      function renderJobs() {
+        const query = jobSearch.value.trim().toLowerCase();
+        const filteredJobs = jobs.filter((job) => job.original_filename.toLowerCase().includes(query));
+        jobCount.textContent = `${jobs.length} 个任务`;
+        if (jobs.length === 0) { jobList.innerHTML = '<div class="list-empty">还没有任务，先上传一个视频。</div>'; return; }
+        if (filteredJobs.length === 0) { jobList.innerHTML = '<div class="list-empty">没有找到匹配的文件。</div>'; return; }
+
+        jobList.innerHTML = filteredJobs.map((job) => {
+          const status = labels[job.status] || job.status;
+          const isSelected = job.id === selectedJobId;
+          return `<div class="job-row ${isSelected ? "selected" : ""}">
+            <button class="job-open" type="button" data-id="${escapeHtml(job.id)}" ${isSelected ? 'aria-current="true"' : ""}>
+              <span class="job-topline"><span class="status-badge status-${escapeHtml(job.status)}">${escapeHtml(status)}</span><span class="job-date">${formatDate(job.created_at)}</span></span>
+              <span class="filename">${escapeHtml(job.original_filename)}</span><span class="job-template">${escapeHtml(getTemplateLabel(job.template_key))}</span>
+              ${job.error ? `<span class="error">${escapeHtml(humanizeError(job.error))}</span>` : ""}
+            </button>
+            <button class="job-delete" type="button" data-delete-id="${escapeHtml(job.id)}" data-delete-name="${escapeHtml(job.original_filename)}" aria-label="删除 ${escapeHtml(job.original_filename)}" title="删除任务">删除</button>
+          </div>`;
+        }).join("");
+        jobList.querySelectorAll(".job-open").forEach((button) => button.addEventListener("click", () => openJob(button.dataset.id, true)));
+        jobList.querySelectorAll(".job-delete").forEach((button) => button.addEventListener("click", () => deleteJob(button.dataset.deleteId, button.dataset.deleteName)));
+      }
+
+      async function deleteJob(jobId, filename) {
+        const confirmed = window.confirm(`确定删除「${filename}」吗？\n\n上传视频、转写稿和生成文章都会被永久删除。`);
+        if (!confirmed) return;
+
+        try {
+          await fetchJson(`/api/jobs/${jobId}`, { method: "DELETE" });
+          if (selectedJobId === jobId) {
+            selectedJobId = null;
+            detailPanel.classList.add("hidden");
+            detailEmpty.classList.remove("hidden");
+          }
+          await loadJobs();
+          if (!selectedJobId && jobs.length > 0) await openJob(jobs[0].id, true);
+          showToast("任务及相关文件已删除");
+        } catch (error) {
+          showToast(error.message || "删除失败", "error");
+        }
+      }
+
+      async function openJob(jobId, switchToArticle) {
+        selectedJobId = jobId;
+        renderJobs();
+        detailEmpty.classList.add("hidden");
+        detailPanel.classList.remove("hidden");
+        try {
+          const data = await fetchJson(`/api/jobs/${jobId}/content`);
+          const job = data.job;
+          const content = data.content || {};
+          detailFilename.textContent = job.original_filename;
+          detailMeta.innerHTML = `<span class="status-badge status-${escapeHtml(job.status)}">${escapeHtml(labels[job.status] || job.status)}</span><span>${escapeHtml(getTemplateLabel(job.template_key))}</span><span>${escapeHtml(formatDateTime(job.created_at))}</span>`;
+          renderDownloads(job);
+          renderMarkdownSections("#tab-article", content.article || "", "文章包还没生成。", "文章包");
+          renderMarkdownSections("#tab-cleaned", content.cleaned || "", "清洗稿还没生成。", "清洗稿");
+          renderPlainText("#tab-raw", content.raw || "", "转写稿还没生成。");
+          finalEditor.value = content.final || content.article || "";
+          saveStatus.textContent = content.final ? "已加载保存过的最终稿。" : "可以基于文章包继续编辑。";
+          if (switchToArticle) activateTab("article");
+        } catch (error) { showToast(error.message || "任务详情加载失败", "error"); }
+      }
+
+      function renderDownloads(job) {
+        const links = [];
+        if (job.raw_transcript_path) links.push(downloadLink(job.id, "raw", "转写稿"));
+        if (job.cleaned_transcript_path) links.push(downloadLink(job.id, "cleaned", "清洗稿"));
+        if (job.article_path) links.push(downloadLink(job.id, "article", "文章包"));
+        if (job.final_article_path) links.push(downloadLink(job.id, "final", "最终稿"));
+        downloadLinks.innerHTML = links.length ? links.join("") : '<span class="no-download">暂无文件</span>';
+      }
+
+      function downloadLink(jobId, kind, label) { return `<a href="/api/jobs/${escapeHtml(jobId)}/download/${escapeHtml(kind)}">${escapeHtml(label)}</a>`; }
+
+      function renderMarkdownSections(selector, markdown, emptyText, groupLabel) {
+        const target = document.querySelector(selector);
+        if (!markdown.trim()) { target.innerHTML = `<div class="content-empty"><strong>${escapeHtml(emptyText)}</strong><span>任务处理中时，内容会自动更新。</span></div>`; return; }
+        const sections = splitMarkdownSections(markdown);
+        target.innerHTML = `<div class="output-summary"><span>${escapeHtml(groupLabel)}</span><span>${sections.length} 个内容块 · ${countCharacters(markdown)} 字</span></div>${sections.map((section, index) => `
+          <article class="content-section"><header><span class="section-index">${String(index + 1).padStart(2, "0")}</span><h3>${escapeHtml(section.title)}</h3><button class="copy-action" type="button" data-copy="${index}">复制</button></header><pre>${escapeHtml(section.body)}</pre></article>`).join("")}`;
+        target.querySelectorAll("[data-copy]").forEach((button) => {
+          const section = sections[Number(button.dataset.copy)];
+          button.addEventListener("click", async () => { await copyText(`${section.title}\n\n${section.body}`); showToast(`已复制「${section.title}」`); });
+        });
+      }
+
+      function renderPlainText(selector, text, emptyText) {
+        const target = document.querySelector(selector);
+        if (!text.trim()) { target.innerHTML = `<div class="content-empty"><strong>${escapeHtml(emptyText)}</strong><span>任务处理中时，内容会自动更新。</span></div>`; return; }
+        target.innerHTML = `<div class="output-summary"><span>原始转写</span><span>${countCharacters(text)} 字</span></div><article class="content-section"><header><span class="section-index">01</span><h3>原始转写稿</h3><button class="copy-action" type="button" id="copyRawBtn">复制</button></header><pre>${escapeHtml(text)}</pre></article>`;
+        target.querySelector("#copyRawBtn").addEventListener("click", async () => { await copyText(text); showToast("转写稿已复制"); });
+      }
+
+      function splitMarkdownSections(markdown) {
+        const lines = markdown.replace(/\r\n/g, "\n").split("\n");
+        const sections = [];
+        let current = { title: "内容", body: [] };
+        lines.forEach((line) => {
+          const match = line.match(/^#\s+(.+)$/);
+          if (match) { if (current.body.join("\n").trim() || current.title !== "内容") sections.push({ title: current.title, body: current.body.join("\n").trim() }); current = { title: match[1].trim(), body: [] }; }
+          else current.body.push(line);
+        });
+        if (current.body.join("\n").trim() || sections.length === 0) sections.push({ title: current.title, body: current.body.join("\n").trim() });
+        return sections;
+      }
+
+      function activateTab(name) {
+        document.querySelectorAll(".tab").forEach((button) => { const active = button.dataset.tab === name; button.classList.toggle("active", active); button.setAttribute("aria-selected", String(active)); button.tabIndex = active ? 0 : -1; });
+        document.querySelectorAll(".tab-panel").forEach((panel) => panel.classList.toggle("hidden", panel.id !== `tab-${name}`));
+      }
+
+      async function saveFinalArticle() {
+        if (!selectedJobId) return;
+        saveFinalBtn.disabled = true;
+        saveStatus.textContent = "保存中...";
+        try {
+          await fetchJson(`/api/jobs/${selectedJobId}/final`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: finalEditor.value }) });
+          saveStatus.textContent = "最终稿已保存。"; showToast("最终稿已保存"); await openJob(selectedJobId, false); activateTab("final");
+        } catch (error) { saveStatus.textContent = error.message; showToast(error.message || "保存失败", "error"); }
+        finally { saveFinalBtn.disabled = false; }
+      }
+
+      async function copyText(text, fallbackElement = null) {
+        try { if (navigator.clipboard?.writeText) { await navigator.clipboard.writeText(text); return "copied"; } fallbackCopyText(text); return "copied"; }
+        catch (_) { try { fallbackCopyText(text); return "copied"; } catch (fallbackError) { if (fallbackElement) { fallbackElement.focus(); fallbackElement.select(); return "selected"; } throw fallbackError; } }
+      }
+
+      function fallbackCopyText(text) {
+        const textarea = document.createElement("textarea"); textarea.value = text; textarea.setAttribute("readonly", ""); textarea.style.position = "fixed"; textarea.style.left = "-9999px"; document.body.appendChild(textarea); textarea.focus(); textarea.select(); const ok = document.execCommand("copy"); textarea.remove(); if (!ok) throw new Error("复制失败");
+      }
+
+      function getTemplateLabel(key) { return templates.find((item) => item.key === key)?.label || "默认模板"; }
+      function updateTemplateDescription() { templateDescription.textContent = templates.find((item) => item.key === templateSelect.value)?.description || "选择后会调整文章结构和写作重点。"; }
+      function updateFileName(file) { if (!file) { fileName.textContent = "选择视频文件"; fileHint.textContent = "也可以将文件拖到这里"; dropZone.classList.remove("has-file"); return; } fileName.textContent = file.name; fileHint.textContent = formatFileSize(file.size); dropZone.classList.add("has-file"); }
+      function showToast(message, type = "success") { window.clearTimeout(toastTimer); toast.textContent = message; toast.className = `toast toast-${type}`; toastTimer = window.setTimeout(() => toast.classList.add("hidden"), 2600); }
+      function formatDate(value) { return new Intl.DateTimeFormat("zh-CN", { month: "2-digit", day: "2-digit" }).format(new Date(value)); }
+      function formatDateTime(value) { return new Intl.DateTimeFormat("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }).format(new Date(value)); }
+      function formatFileSize(bytes) { return bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`; }
+      function countCharacters(text) { return text.replace(/\s/g, "").length; }
+      function humanizeError(error) { return error.length <= 120 ? error : `${error.slice(0, 117)}...`; }
+      function escapeHtml(value) { return String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;"); }
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const file = fileInput.files[0];
+        if (!file) { showToast("请先选择视频文件", "error"); fileInput.focus(); return; }
+        const data = new FormData(); data.append("file", file); data.append("template_key", templateSelect.value);
+        submitBtn.disabled = true; submitBtn.querySelector("span").textContent = "正在上传"; uploadStatus.textContent = "正在上传视频，请不要关闭页面...";
+        try { const payload = await fetchJson("/api/jobs", { method: "POST", body: data }); fileInput.value = ""; updateFileName(null); uploadStatus.textContent = "任务已创建，处理进度会自动刷新。"; await loadJobs(); await openJob(payload.job_id, true); showToast("任务已开始处理"); }
+        catch (error) { uploadStatus.textContent = error.message; showToast(error.message || "上传失败", "error"); }
+        finally { submitBtn.disabled = false; submitBtn.querySelector("span").textContent = "开始生成"; }
+      });
+
+      fileInput.addEventListener("change", () => updateFileName(fileInput.files[0]));
+      templateSelect.addEventListener("change", updateTemplateDescription);
+      jobSearch.addEventListener("input", renderJobs);
+      refreshBtn.addEventListener("click", () => loadJobs());
+      saveFinalBtn.addEventListener("click", saveFinalArticle);
+      ["dragenter", "dragover"].forEach((eventName) => dropZone.addEventListener(eventName, (event) => { event.preventDefault(); dropZone.classList.add("is-dragging"); }));
+      ["dragleave", "drop"].forEach((eventName) => dropZone.addEventListener(eventName, (event) => { event.preventDefault(); dropZone.classList.remove("is-dragging"); }));
+      dropZone.addEventListener("drop", (event) => { const files = event.dataTransfer.files; if (!files.length) return; const transfer = new DataTransfer(); transfer.items.add(files[0]); fileInput.files = transfer.files; updateFileName(files[0]); });
+      document.querySelectorAll(".tab").forEach((button) => {
+        button.addEventListener("click", () => activateTab(button.dataset.tab));
+        button.addEventListener("keydown", (event) => { if (!["ArrowLeft", "ArrowRight"].includes(event.key)) return; const tabs = [...document.querySelectorAll(".tab")]; const current = tabs.indexOf(button); const next = event.key === "ArrowRight" ? (current + 1) % tabs.length : (current - 1 + tabs.length) % tabs.length; activateTab(tabs[next].dataset.tab); tabs[next].focus(); });
+      });
+      copyFinalBtn.addEventListener("click", async () => {
+        try { const result = await copyText(finalEditor.value, finalEditor); saveStatus.textContent = result === "copied" ? "最终稿已复制。" : "内容已选中，可按 Ctrl+C 复制。"; showToast(result === "copied" ? "最终稿已复制" : "内容已选中"); }
+        catch (error) { saveStatus.textContent = error.message || "复制失败。"; showToast(error.message || "复制失败", "error"); }
+      });
+      init();
+    </script>
+  </body>
+</html>
