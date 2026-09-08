@@ -198,6 +198,86 @@ GET /api/health
 
 返回结果会显示服务状态、FFmpeg 是否可用、API 是否已配置，以及当前模型名称。接口不会返回 API Key。
 
+## 部署到现有服务器
+
+本项目可以和“写作助手”部署在同一台服务器，但会使用独立容器与独立数据目录。建议使用子域名：
+
+```text
+https://video.mywriting-assistant.xyz
+```
+
+部署前请确认服务器已运行写作助手的 Caddy HTTPS 代理，并为 `video` 添加一条 DNS 记录：
+
+| 主机记录 | 类型 | 记录值 |
+| --- | --- | --- |
+| `video` | `A` | 服务器公网 IP |
+
+### 1. 本机创建私有迁移包
+
+迁移包包含 API 配置、历史任务、原视频与生成文件，不能提交到 GitHub 或发送给他人。它会把任务数据库中的本机路径自动转换为 Docker 容器内路径。
+
+Windows PowerShell：
+
+```powershell
+cd "C:\Users\87271\Documents\视频转文章提取"
+.\.venv\Scripts\python.exe .\scripts\prepare_server_migration.py --output "C:\Users\87271\Documents\视频转文章提取\server-migration-video-to-x.zip"
+```
+
+### 2. 服务器更新写作助手的 HTTPS 代理
+
+在服务器的 `/opt/writing-assistant` 中拉取包含视频子域名配置的版本，然后重建 Caddy：
+
+```bash
+cd /opt/writing-assistant
+git pull
+sudo docker compose up -d --build
+```
+
+这一步会创建共享 Docker 网络 `writing-assistant-proxy`，供两个应用之间的 HTTPS 代理使用。
+
+### 3. 服务器部署视频应用
+
+```bash
+sudo mkdir -p /opt/video-to-x-article
+sudo chown admin:admin /opt/video-to-x-article
+git clone https://github.com/wawafish1/video-to-x-article.git /opt/video-to-x-article
+cd /opt/video-to-x-article
+sudo dnf install -y unzip
+unzip -o /tmp/server-migration-video-to-x.zip -d .
+sudo docker compose up -d --build
+```
+
+将第 1 步生成的私有迁移包上传到服务器的 `/tmp/server-migration-video-to-x.zip` 后，再执行上述命令。部署完成后可以删除它：
+
+```bash
+rm -f /tmp/server-migration-video-to-x.zip
+```
+
+### 4. 验证
+
+```bash
+sudo docker compose ps
+sudo docker compose logs --tail=100 video-to-x-article
+```
+
+浏览器访问：
+
+```text
+https://video.mywriting-assistant.xyz
+```
+
+### 日常更新
+
+代码更新不会覆盖 `data/` 中的视频、任务记录和生成文件：
+
+```bash
+cd /opt/video-to-x-article
+git pull
+sudo docker compose up -d --build
+```
+
+服务器磁盘为 40 GiB 时，应及时在应用中删除不需要的历史任务。删除任务会同时删除对应上传视频和生成文件，能避免磁盘被长期占满。
+
 ## 常见问题
 
 ### 页面无法打开

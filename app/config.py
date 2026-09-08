@@ -13,9 +13,12 @@ class Settings:
         load_dotenv(ROOT_DIR / ".env", override=True, encoding="utf-8-sig")
 
         self.root_dir = ROOT_DIR
-        self.uploads_dir = ROOT_DIR / "uploads"
-        self.outputs_dir = ROOT_DIR / "outputs"
-        self.db_path = ROOT_DIR / "jobs.db"
+        # Docker uses /app/data so runtime data stays outside the application image.
+        # Without APP_DATA_DIR, local Windows usage keeps the existing layout.
+        self.data_dir = Path(os.getenv("APP_DATA_DIR", str(ROOT_DIR))).resolve()
+        self.uploads_dir = self.data_dir / "uploads"
+        self.outputs_dir = self.data_dir / "outputs"
+        self.db_path = self.data_dir / "jobs.db"
 
         self.openai_api_key = os.getenv("OPENAI_API_KEY", "")
         self.openai_base_url = os.getenv("OPENAI_BASE_URL", "")

@@ -1,0 +1,20 @@
+services:
+  video-to-x-article:
+    build: .
+    container_name: video-to-x-article
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      APP_DATA_DIR: /app/data
+    expose:
+      - "54810"
+    volumes:
+      - ./data:/app/data
+    networks:
+      - writing_assistant_proxy
+
+networks:
+  writing_assistant_proxy:
+    external: true
+    name: writing-assistant-proxy

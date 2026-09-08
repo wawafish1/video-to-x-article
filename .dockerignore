@@ -1,0 +1,12 @@
+.git
+.env
+.venv
+.server
+__pycache__
+*.pyc
+*.log
+jobs.db
+uploads
+outputs
+data
+server-migration-*.zip

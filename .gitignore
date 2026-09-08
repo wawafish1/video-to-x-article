@@ -9,3 +9,5 @@ __pycache__/
 jobs.db
 uploads/
 outputs/
+data/
+server-migration-*.zip
